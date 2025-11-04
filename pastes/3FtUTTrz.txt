@@ -1,0 +1,58 @@
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+
+module.exports = {
+config: {
+name: "bin",
+version: "1.2",
+author: "MinatoCode",
+countDown: 5,
+role: 0,
+shortDescription: { en: "📤 Upload a file to MinatoPaste" },
+longDescription: { en: "Uploads any file from the 'cmds' folder to your custom Paste API and returns the raw link." },
+category: "owner",
+guide: { en: "⚙️ Usage: {p}bin <filename>\nExample: {p}bin autodl" }
+},
+
+onStart: async function ({ api, event, args }) {
+const allowedUIDs = ["61575868051148", "100088286122703"];
+if (!allowedUIDs.includes(event.senderID)) {
+return api.sendMessage("❌ You are not allowed to use this command.", event.threadID);
+}
+
+if (!args[0]) {
+  return api.sendMessage("❌ Please provide a filename.\nExample: bin autodl", event.threadID);
+}
+
+const rawName = args[0].replace(/\.js$/, '');
+const filePath = path.join(__dirname, '..', 'cmds', `${rawName}.js`);
+
+if (!fs.existsSync(filePath)) {
+  return api.sendMessage("❌ File not found in 'cmds' folder. Check the name again.", event.threadID);
+}
+
+try {
+  const fileContent = fs.readFileSync(filePath, 'utf8');
+
+  const response = await axios.post('https://minato-paste-api.vercel.app/upload', {
+    code: fileContent,
+    api_key: "itachixd069b", // replace with your key
+    owner: "minato"
+  });
+
+  if (response.data && response.data.success) {
+    return api.sendMessage(`✅ Uploaded to MinatoPaste:\n🔗 ${response.data.url}`, event.threadID);
+  } else {
+    return api.sendMessage(`❌ Failed to upload. API response:\n${JSON.stringify(response.data)}`, event.threadID);
+  }
+
+} catch (err) {
+  const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+  console.error("MinatoPaste Upload Error:", err.response?.data || err.message);
+  return api.sendMessage(`❌ Failed to upload. API error:\n${errorMsg}`, event.threadID);
+}
+
+
+}
+};
