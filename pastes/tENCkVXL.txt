@@ -1,0 +1,39 @@
+// catbox.js
+module.exports = {
+  config: {
+    name: "catbox",
+    aliases: ["cb"],
+    version: "1.0",
+    author: "MinatoCodes",
+    description: "Img, video, and gif hoster using Catbox API",
+    usage: "{pn}catbox/cb with media reply",
+    cooldown: 5,
+    category: "tools"
+  },
+
+  onStart: async function ({ api, event }) {
+    try {
+      // Check if user replied with media
+      const attachments = event.messageReply?.attachments || event.attachments;
+
+      if (!attachments || attachments.length === 0) {
+        return api.sendMessage("❌ Please reply with an image/video/gif using {pn}catbox or {pn}cb.", event.threadID, event.messageID);
+      }
+
+      const fileUrl = attachments[0].url;
+
+      // Call your Catbox uploader API
+      const fetch = require("node-fetch");
+      const response = await fetch(`https://min-catbox.vercel.app/upload?url=${encodeURIComponent(fileUrl)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        return api.sendMessage(`✅ Uploaded successfully!\n📎 ${data.hostedurl}`, event.threadID, event.messageID);
+      } else {
+        return api.sendMessage(`❌ Failed to upload.\nError: ${data.error || "Unknown error"}`, event.threadID, event.messageID);
+      }
+    } catch (err) {
+      return api.sendMessage(`⚠️ An error occurred: ${err.message}`, event.threadID, event.messageID);
+    }
+  }
+};
